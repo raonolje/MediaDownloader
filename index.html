@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Media Downloader</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+
+    <!-- 헤더 -->
+    <header class="app-header">
+      <div class="header-logo">
+        <span class="logo-icon">⬇️</span>
+        <div class="logo-text">
+          <h1>MEDIA DOWNLOADER</h1>
+          <span class="logo-sub">YouTube · TikTok · X · Instagram</span>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="env-status" id="envStatus">
+          <span class="status-dot" id="statusDot"></span>
+          <span id="statusText">환경 확인 중...</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- 업데이트 배너 -->
+    <div class="update-banner" id="updateBanner" style="display:none;">
+      <div class="banner-content">
+        <span class="banner-icon">🔄</span>
+        <div class="banner-text">
+          <strong id="updateBannerTitle">업데이트 가능</strong>
+          <p id="updateBannerDesc"></p>
+        </div>
+        <button class="btn-update" onclick="doUpdate()">업데이트</button>
+        <button class="btn-banner-close" onclick="closeUpdateBanner()">✕</button>
+      </div>
+    </div>
+
+    <!-- 환경 경고 배너 -->
+    <div class="env-banner" id="envBanner" style="display:none;">
+      <div class="banner-content">
+        <span class="banner-icon">⚠️</span>
+        <div class="banner-text">
+          <strong>필수 도구가 설치되지 않았습니다</strong>
+          <p id="bannerDesc"></p>
+        </div>
+        <button class="btn-install" onclick="installMissingTools()">자동 설치</button>
+      </div>
+    </div>
+
+    <!-- 메인 -->
+    <main class="main-content">
+
+      <!-- 지원 플랫폼 표시 -->
+      <section class="section platform-section">
+        <div class="platform-chips">
+          <span class="platform-chip youtube">🎬 YouTube</span>
+          <span class="platform-chip tiktok">🎵 TikTok</span>
+          <span class="platform-chip twitter">🐦 X (Twitter)</span>
+          <span class="platform-chip instagram">📸 Instagram</span>
+        </div>
+      </section>
+
+      <!-- URL 목록 -->
+      <section class="section url-section">
+        <div class="section-header">
+          <label class="section-label">미디어 URL</label>
+          <button class="btn-add-url" onclick="addUrlRow()">
+            <span>＋</span> URL 추가
+          </button>
+        </div>
+        <div id="urlList" class="url-list"></div>
+      </section>
+
+      <!-- 다운로드 모드 -->
+      <section class="section mode-section">
+        <label class="section-label">다운로드 모드</label>
+        <div class="mode-buttons">
+          <button class="mode-btn active" id="modeVideo" onclick="setMode('video')">
+            <span class="mode-icon">🎥</span>
+            <div class="mode-text">
+              <strong>영상 다운로드</strong>
+              <small>최고 화질 MP4</small>
+            </div>
+          </button>
+          <button class="mode-btn" id="modeAudio" onclick="setMode('mp3')">
+            <span class="mode-icon">🎵</span>
+            <div class="mode-text">
+              <strong>음원 추출</strong>
+              <small>MP3 오디오만</small>
+            </div>
+          </button>
+        </div>
+      </section>
+
+      <!-- 저장 폴더 -->
+      <section class="section folder-section">
+        <label class="section-label">저장 폴더</label>
+        <div class="folder-input-group">
+          <input type="text" id="folderInput" class="folder-input" readonly>
+          <button class="btn-folder" onclick="selectFolder()">📁 폴더 선택</button>
+        </div>
+      </section>
+
+      <!-- 다운로드 버튼 -->
+      <section class="section download-section">
+        <button class="btn-download" id="btnDownload" onclick="startAllDownloads()" disabled>
+          <span>⬇️</span>
+          <span id="btnDownloadText">다운로드</span>
+        </button>
+      </section>
+
+      <!-- 로그 -->
+      <section class="section log-section" id="logSection" style="display:none;">
+        <div class="log-header">
+          <span>상세 로그</span>
+          <button class="btn-log-toggle" onclick="toggleLog()">접기 ▲</button>
+        </div>
+        <div class="log-content" id="logContent"></div>
+      </section>
+
+    </main>
+
+    <!-- 업데이트 모달 -->
+    <div class="modal-overlay" id="updateModal" style="display:none;">
+      <div class="modal">
+        <div class="modal-header">
+          <span>🔄</span>
+          <h2>도구 업데이트</h2>
+        </div>
+        <div class="modal-body">
+          <p id="updateStatus">업데이트를 시작합니다...</p>
+          <div class="progress-bar-wrap" id="updateProgressWrap" style="display:none;">
+            <div class="progress-bar-track">
+              <div class="progress-bar-fill" id="updateProgressFill" style="width:0%"></div>
+            </div>
+            <span class="progress-pct" id="updateProgressPct">0%</span>
+          </div>
+          <div class="install-log" id="updateLog"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-modal-confirm" id="btnUpdateClose" onclick="closeUpdateModal()" disabled>완료</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 설치 모달 -->
+    <div class="modal-overlay" id="installModal" style="display:none;">
+      <div class="modal">
+        <div class="modal-header">
+          <span>🔧</span>
+          <h2>도구 설치 중</h2>
+        </div>
+        <div class="modal-body">
+          <p id="installStatus">설치를 시작합니다...</p>
+          <div class="install-log" id="installLog"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-modal-confirm" id="btnModalClose" onclick="closeInstallModal()" disabled>완료</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <script src="renderer.js"></script>
+</body>
+</html>

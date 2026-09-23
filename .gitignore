@@ -1,0 +1,20 @@
+# OS
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# 에디터
+.vscode/
+.idea/
+*.swp
+
+# 빌드 산출물 / 의존성
+node_modules/
+dist/
+
+# 외부 도구 바이너리 (용량이 커서 git에 넣지 않음 — 받는 방법은 README.md)
+vendor/*.exe
+
+# 로컬 작업물
+*.log
+tmp/

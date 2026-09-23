@@ -1,0 +1,56 @@
+{
+  "name": "media-downloader",
+  "version": "1.0.0",
+  "description": "Multi-platform media downloader for YouTube, TikTok, X, Instagram",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win portable"
+  },
+  "build": {
+    "appId": "com.mediadownloader.app",
+    "productName": "Media Downloader",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.ico",
+      "artifactName": "Media Downloader ${version} Portable.exe",
+      "sign": false,
+      "signingHashAlgorithms": null
+    },
+    "portable": {
+      "artifactName": "Media Downloader ${version} Portable.exe"
+    },
+    "extraResources": [
+      {
+        "from": "vendor/",
+        "to": "vendor/",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "asar": true,
+    "compression": "normal",
+    "nsis": {
+      "oneClick": false
+    }
+  },
+  "dependencies": {
+    "iconv-lite": "^0.6.3"
+  },
+  "devDependencies": {
+    "@electron/asar": "^4.2.0",
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8"
+  }
+}
