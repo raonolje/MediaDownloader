@@ -49,6 +49,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.electronAPI.onUpdateProgress((data) => {
     handleUpdateProgress(data);
   });
+
+  // yt-dlp는 시작할 때 최신 버전을 확인해 자동으로 설치 (이후엔 main에서 주기적으로 확인)
+  window.electronAPI.onYtdlpAutoUpdate(handleYtdlpAutoUpdate);
+  window.electronAPI.autoUpdateYtdlp();
 });
 
 // ─── 환경 체크 ────────────────────────────────────────────────────────────
@@ -80,10 +84,7 @@ async function checkUpdatesInBackground() {
     const result = await window.electronAPI.checkUpdates();
     pendingUpdates = {};
     const msgs = [];
-    if (result.ytdlp && result.ytdlp.needsUpdate) {
-      pendingUpdates.ytdlp = true;
-      msgs.push(`yt-dlp ${result.ytdlp.current} → ${result.ytdlp.latest}`);
-    }
+    // yt-dlp는 자동 업데이트되므로 배너에는 ffmpeg만 표시
     if (result.ffmpeg && result.ffmpeg.needsUpdate) {
       pendingUpdates.ffmpeg = true;
       msgs.push(`ffmpeg ${result.ffmpeg.current} → ${result.ffmpeg.latest}`);
@@ -94,6 +95,35 @@ async function checkUpdatesInBackground() {
       document.getElementById('updateBanner').style.display    = 'block';
     }
   } catch(e) {}
+}
+
+// ─── yt-dlp 자동 업데이트 상태 표시 (헤더 우측) ──────────────────────────
+let statusRestoreTimer = null;
+
+async function handleYtdlpAutoUpdate(data) {
+  const dot  = document.getElementById('statusDot');
+  const text = document.getElementById('statusText');
+  clearTimeout(statusRestoreTimer);
+
+  if (data.state === 'downloading') {
+    dot.className = 'status-dot warn';
+    text.textContent = `yt-dlp ${data.to} 업데이트 중... ${data.pct || 0}%`;
+    return;
+  }
+
+  await checkEnvironment();
+  if (data.state === 'done') {
+    text.textContent = `yt-dlp ${data.to} 자동 업데이트 완료`;
+  } else {
+    dot.className = 'status-dot warn';
+    text.textContent = 'yt-dlp 자동 업데이트 실패';
+    document.getElementById('envStatus').title = data.message || '';
+  }
+  // 몇 초 뒤 원래 상태 표시로 복귀
+  statusRestoreTimer = setTimeout(() => {
+    document.getElementById('envStatus').title = '';
+    checkEnvironment();
+  }, 6000);
 }
 
 function closeUpdateBanner() {

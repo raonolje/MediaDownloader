@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   checkUpdates:       ()       => ipcRenderer.invoke('check-updates'),
   updateYtdlp:        ()       => ipcRenderer.invoke('update-ytdlp'),
   updateFfmpeg:       ()       => ipcRenderer.invoke('update-ffmpeg'),
+  autoUpdateYtdlp:    ()       => ipcRenderer.invoke('auto-update-ytdlp'),
 
   // 미디어
   getMediaInfo:       (url)    => ipcRenderer.invoke('get-media-info', url),
@@ -26,6 +27,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onDownloadProgress: (cb)     => ipcRenderer.on('download-progress', (_, d) => cb(d)),
   onDownloadLog:      (cb)     => ipcRenderer.on('download-log',      (_, d) => cb(d)),
   onUpdateProgress:   (cb)     => ipcRenderer.on('update-progress',   (_, d) => cb(d)),
+  onYtdlpAutoUpdate:  (cb)     => ipcRenderer.on('ytdlp-auto-update', (_, d) => cb(d)),
 
   removeAllListeners: (ch)     => ipcRenderer.removeAllListeners(ch)
 });
