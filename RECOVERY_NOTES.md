@@ -23,6 +23,13 @@ yt-dlp는 공식 릴리스 2026.08.19.
 - 기존 빌드 결과물에는 `resources\vendor\vendor\` 로 도구가 한 번 더 중복 들어가 있었다
   (원본 vendor 폴더 안에 vendor 폴더가 있었던 것으로 보임, 약 220MB 낭비).
   이 폴더의 `vendor/` 는 정리된 상태라 다시 빌드하면 중복이 없어진다.
+- 복구한 package.json 그대로 빌드하면 `vendor/*.exe`(220MB)가 app.asar 안에도 들어간다.
+  배포본 app.asar는 빌드보다 26분 늦게 만들어졌고 devDependencies에 `@electron/asar`가 있어,
+  원 저자가 빌드 후 asar를 손으로 다시 만든 것으로 보인다.
+  → `build.files` 에 `!vendor/**`, `!*.md` 를 추가해 빌드만으로 같은 결과가 나오게 했다.
+- 2026-09-23 빌드 검증: `npm install` → `npm run build` 성공 (electron 33.4.11, electron-builder 25.1.8).
+  app.asar 파일 목록이 배포본과 같고, 코드 파일은 배포본과 바이트 단위로 같다.
+  win-unpacked 479MB (배포 폴더는 중복 때문에 691MB).
 
 ## 복구 직전에 들어간 변경 (2026-09-23)
 
