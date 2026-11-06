@@ -2,6 +2,15 @@
 
 YouTube · TikTok · X · Instagram 영상/음원 다운로더 (Electron + yt-dlp + ffmpeg).
 
+영상 모드는 다운로드가 끝나면 H.264(libx264, CRF 18, fast) + AAC(192 kbps)의 MP4로
+인코딩한다. 영상 픽셀 형식은 Premiere 호환용 8비트 yuv420p이며, 음원이 없는 영상도
+지원한다. 홀수 해상도는 가장자리에 최대 1픽셀을 추가한다. 원본 화질로 다운로드한 뒤
+변환하므로 추가 시간과 임시 디스크 공간이 필요하다. MP3 모드는 기존 동작을 유지한다.
+
+화면에는 다운로드 후 `H.264 인코딩 중...`이 표시되며, ffprobe로 출력 코덱을 확인한 뒤
+완료 처리한다. 변환 실패 시 원본을 보존하고 실패를 표시한다. 이미 받은 파일들은
+자동으로 변환하지 않으며, 이 변경은 새로 실행하는 영상 다운로드에 적용된다.
+
 ## 폴더 구성
 
 ```
@@ -41,11 +50,23 @@ yt-dlp는 앱이 실행될 때 자동으로 최신 버전을 받아 `%APPDATA%\m
 
 ## 동작 메모
 
-- yt-dlp는 `cmd.exe /c "chcp 65001 && ..."` 로 실행한다. `windowsVerbatimArguments: true` 가 없으면
-  Node가 명령 안의 `"` 를 `\"` 로 바꿔 cmd가 경로를 못 읽는다.
+- 다운로드는 yt-dlp를 직접 실행해 URL/경로를 인수로 전달한다. 정보 조회용 파일 출력은
+  기존 `cmd.exe /c` 방식을 사용한다. 완료 파일은 `after_move`의 실제 경로로 추적한다.
 - yt-dlp는 `PYTHONIOENCODING` 을 무시하고 CP949로 출력하므로 `--encoding utf-8` 을 항상 붙인다.
 - PC에 Node.js v22+ 가 있으면 `--js-runtimes node:<경로>` 로 넘긴다 (YouTube 추출용 JS 런타임).
   `vendor/deno.exe` 를 두면 그쪽을 우선 사용한다.
+
+## 인코딩 검증
+
+`vendor/ffmpeg.exe`, `vendor/ffprobe.exe`를 준비한 뒤 실행한다. 다른 위치의 도구는
+`FFMPEG_PATH`, `FFPROBE_PATH` 환경 변수로 지정할 수 있다.
+
+```bash
+node --test tests/premiere.test.js
+```
+
+VP9/Opus, 10비트 HEVC, H.264/AAC, 무음/홀수 해상도 입력을 실제로 변환하고
+H.264/yuv420p/AAC 출력 및 디코딩을 검사한다. 변환 실패 시 원본 보존과 파일명 충돌도 검사한다.
 
 ## 아이콘 수정
 

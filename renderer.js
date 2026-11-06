@@ -33,6 +33,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       const el = document.getElementById(`upLabel_${data.id}`);
       if (el) el.textContent = data.filename;
     }
+    if (data.encoding) {
+      const el = document.getElementById(`upLabel_${data.id}`);
+      if (el) el.textContent = 'H.264 인코딩 중... ' + (data.filename || '');
+      const speed = document.getElementById(`upSpeed_${data.id}`);
+      if (speed) speed.textContent = 'Premiere용 MP4 변환';
+      const pct = document.getElementById(`upPct_${data.id}`);
+      if (pct) pct.textContent = `${Math.min(99, Math.round(data.percent || 0))}% (인코딩)`;
+    }
     if (data.merging) {
       const el = document.getElementById(`upLabel_${data.id}`);
       if (el && !el.textContent.startsWith('병합')) el.textContent = '병합 중... ' + el.textContent;

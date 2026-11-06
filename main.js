@@ -6,6 +6,7 @@ const os    = require('os');
 const https = require('https');
 const http  = require('http');
 const crypto = require('crypto');
+const { encodeForPremiere } = require('./premiere');
 
 let mainWindow;
 
@@ -93,12 +94,8 @@ function runToFile(exePath, args, outFile) {
 // ─── yt-dlp 실행: 스트림 방식 (진행률용) ────────────────────────────────
 function runStream(exePath, args, onData) {
   return new Promise((resolve) => {
-    const q    = (s) => (s.includes(' ') ? `"${s}"` : s);
-    const qArgs = args.map(a => (a.includes(' ') && !a.startsWith('"') ? `"${a}"` : a));
-    const cmd  = `chcp 65001 > nul 2>&1 && ${q(exePath)} ${qArgs.join(' ')}`;
-    const proc = spawn('cmd.exe', ['/c', cmd], {
+    const proc = spawn(exePath, args, {
       windowsHide: true,
-      windowsVerbatimArguments: true,
       env: { ...process.env, PYTHONUTF8: '1', PYTHONIOENCODING: 'utf-8' }
     });
     proc.stdout.setEncoding('utf8');
@@ -446,7 +443,9 @@ async function getExpectedFilename(url, outputDir, mode) {
     const raw     = fs.readFileSync(outFile, 'utf8');
     fs.unlinkSync(outFile);
     const cleaned = stripChcp(raw);
-    return cleaned ? path.basename(cleaned.split('\n')[0].trim()) : '';
+    const filename = cleaned.split('\n').map(line => line.trim())
+      .find(line => path.isAbsolute(line) && path.extname(line).toLowerCase() === `.${ext}`);
+    return filename ? path.basename(filename) : '';
   } catch(e) {
     try { if (fs.existsSync(outFile)) fs.unlinkSync(outFile); } catch(_) {}
     return '';
@@ -462,6 +461,11 @@ async function startDownload(opts, isRetry = false) {
   const ytdlp     = getYtdlp();
   const ffmpegDir = getFfmpegDir();
   const platform  = detectPlatform(url);
+  const ffmpeg = getVendorExe('ffmpeg.exe') || await findExec('ffmpeg');
+  const ffprobe = getVendorExe('ffprobe.exe') || await findExec('ffprobe');
+  if (mode !== 'mp3' && (!ffmpeg || !ffprobe)) {
+    return { success: false, message: 'H.264 변환에 필요한 ffmpeg/ffprobe를 설치해 주세요.' };
+  }
 
   // 파일명 사전 조회
   const expectedFilename = await getExpectedFilename(url, outputDir, mode);
@@ -496,6 +500,10 @@ async function startDownload(opts, isRetry = false) {
 
   if (ffmpegDir) args.unshift('--ffmpeg-location', ffmpegDir);
   args.unshift(...await getYtdlpCommonArgs());
+  const manifest = path.join(os.tmpdir(), `mdl_result_${crypto.randomUUID()}.jsonl`);
+  if (mode !== 'mp3') {
+    args.push('--no-simulate', '--print-to-file', 'after_move:%(filepath)j', manifest);
+  }
   args.push('-o', outTemplate, url);
 
   let lastFilename = expectedFilename || '';
@@ -515,6 +523,36 @@ async function startDownload(opts, isRetry = false) {
     }
     send('download-log', { id, text });
   });
+
+  // A video is complete only after the exact yt-dlp output has been transcoded.
+  if (mode !== 'mp3') {
+    let source = '';
+    try {
+      if (fs.existsSync(manifest)) {
+        const lines = fs.readFileSync(manifest, 'utf8').trim().split(/\r?\n/);
+        source = JSON.parse(lines[lines.length - 1]);
+      }
+    } catch (_) {}
+    finally { try { if (fs.existsSync(manifest)) fs.unlinkSync(manifest); } catch (_) {} }
+    if (code !== 0) {
+      if (!isRetry && await updateYtdlpAfterFailure(id)) return startDownload(opts, true);
+      return { success: false, message: `다운로드 실패 (코드: ${code}). H.264 변환이 완료되지 않았습니다.` };
+    }
+    if (typeof source !== 'string' || !source ||
+        path.resolve(path.dirname(source)).toLowerCase() !== path.resolve(outputDir).toLowerCase() ||
+        !fs.existsSync(source)) {
+      return { success: false, message: '다운로드된 파일 경로를 확인할 수 없어 H.264 변환을 중단했습니다.' };
+    }
+    try {
+      const filename = await encodeForPremiere(source, ffmpeg, ffprobe,
+        percent => send('download-progress', { id, percent, encoding: true, filename: path.basename(source) }),
+        text => send('download-log', { id, text }));
+      return { success: true, filename };
+    } catch (e) {
+      send('download-log', { id, text: `[H.264] ${e.message}\n` });
+      return { success: false, message: `H.264 변환 실패. 받은 원본은 보존했습니다: ${e.message}` };
+    }
+  }
 
   // 종료 코드가 0이 아니더라도 실제 파일이 저장됐으면 성공으로 처리
   // (TikTok/Instagram 등은 후처리 경고로 코드 1 반환하지만 파일은 정상 저장됨)
